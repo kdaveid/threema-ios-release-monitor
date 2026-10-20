@@ -9,6 +9,7 @@ import os
 import re
 import subprocess
 import sys
+import urllib.error
 import urllib.parse
 import urllib.request
 from datetime import datetime, time
@@ -53,9 +54,12 @@ def send_telegram(text: str) -> None:
         "disable_web_page_preview": "true",
     }).encode()
     url = f"https://api.telegram.org/bot{token}/sendMessage"
-    with urllib.request.urlopen(url, data=data, timeout=30) as resp:
-        if not json.load(resp).get("ok"):
-            sys.exit("Telegram hat die Nachricht abgelehnt")
+    try:
+        with urllib.request.urlopen(url, data=data, timeout=30) as resp:
+            json.load(resp)
+    except urllib.error.HTTPError as e:
+        detail = json.load(e).get("description", e.reason)
+        sys.exit(f"Telegram hat die Nachricht abgelehnt ({e.code}): {detail}")
 
 
 def main() -> None:
