@@ -1,0 +1,46 @@
+name: Threema iOS Check
+
+on:
+  schedule:
+    # Cron läuft in UTC. Diese Zeiten treffen 08:00 und 14:00 Schweizer Zeit
+    # sowohl im Winter (UTC+1) als auch im Sommer (UTC+2). Das Skript prüft
+    # selbst die Bürozeiten; doppelte Läufe melden eine Version nie zweimal.
+    - cron: "0 6,7,12,13 * * 1-5"
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Bürozeiten ignorieren (zum Testen)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: threema-check
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Nach neuen Tags suchen
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          FORCE: ${{ inputs.force }}
+        run: python check_threema.py
+
+      - name: Stand speichern
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add state/last_build.txt 2>/dev/null || exit 0
+          git diff --cached --quiet && exit 0
+          git commit -m "Threema-Stand aktualisiert"
+          git push
