@@ -1,4 +1,5 @@
 name: Threema iOS Check
+# Prüft Threema-iOS-Tags und meldet neue Versionen per Telegram.
 
 on:
   schedule:
